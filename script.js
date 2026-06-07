@@ -249,10 +249,43 @@
     }
     $('#explText').textContent = q.explanation;
 
+    // Source : image du cours
+    const srcBlock = $('#sourceBlock');
+    if (q.source && q.source.img) {
+      $('#sourceImg').src = q.source.img;
+      $('#sourceImg').alt = `Cours ${q.source.pdf} — page ${q.source.page}`;
+      const caption = `Cours ${q.source.pdf} · page ${q.source.page}` +
+        (q.source.title ? ` — ${q.source.title}` : '');
+      $('#sourceCaption').textContent = caption;
+      srcBlock.classList.remove('hidden');
+      // Stocker pour le modal
+      srcBlock.dataset.imgSrc = q.source.img;
+      srcBlock.dataset.imgCaption = caption;
+    } else {
+      srcBlock.classList.add('hidden');
+    }
+
     // Scroll doux vers l'explication sur mobile
     setTimeout(() => {
       exp.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 100);
+  }
+
+  // -------------------- MODAL IMAGE --------------------
+  function openImgModal() {
+    const block = $('#sourceBlock');
+    const src = block.dataset.imgSrc;
+    if (!src) return;
+    $('#modalImg').src = src;
+    $('#modalCaption').textContent = block.dataset.imgCaption || '';
+    $('#imgModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeImgModal() {
+    $('#imgModal').classList.add('hidden');
+    $('#modalImg').src = '';
+    document.body.style.overflow = '';
   }
 
   function nextQuestion() {
@@ -340,6 +373,9 @@
       wrongs.forEach((a) => {
         const div = document.createElement('div');
         div.className = 'review-item';
+        const srcLine = (a.q.source && a.q.source.pdf)
+          ? `<div class="review-source">📖 Cours ${a.q.source.pdf} · page ${a.q.source.page}${a.q.source.title ? ' — ' + escapeHtml(a.q.source.title) : ''}</div>`
+          : '';
         div.innerHTML = `
           <div class="review-question">${escapeHtml(a.q.q)}</div>
           <div class="review-row wrong">
@@ -351,6 +387,7 @@
             <span class="val">${escapeHtml(a.q.options[a.q.answer])}</span>
           </div>
           <div class="review-explanation">💡 ${escapeHtml(a.q.explanation)}</div>
+          ${srcLine}
         `;
         list.appendChild(div);
       });
@@ -371,8 +408,21 @@
     $('#reviewBtn').addEventListener('click', showReview);
     $('#backFromReviewBtn').addEventListener('click', () => showScreen('#screen-result'));
 
+    // Modal image
+    $('#sourceImgBtn').addEventListener('click', openImgModal);
+    $('#zoomBtn').addEventListener('click', openImgModal);
+    $('#closeModalBtn').addEventListener('click', closeImgModal);
+    $('#imgModal').addEventListener('click', (ev) => {
+      if (ev.target.id === 'imgModal') closeImgModal();
+    });
+
     // Raccourcis clavier
     document.addEventListener('keydown', (ev) => {
+      // Modal ouvert : Esc ferme
+      if (!$('#imgModal').classList.contains('hidden')) {
+        if (ev.key === 'Escape') closeImgModal();
+        return;
+      }
       if (!$('#screen-quiz').classList.contains('active')) return;
       const expVisible = !$('#explanation').classList.contains('hidden');
       if (expVisible && (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'ArrowRight')) {

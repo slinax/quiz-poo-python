@@ -103,6 +103,15 @@
           <span id="explStatus">Explication</span>
         </div>
         <p id="explText"></p>
+        <div id="sourceBlock" class="source-block hidden">
+          <div class="source-meta">
+            <span class="source-label">📖 <span id="sourceCaption">Cours — page</span></span>
+            <button id="zoomBtn" type="button" class="source-zoom">Agrandir 🔍</button>
+          </div>
+          <button id="sourceImgBtn" type="button" class="source-thumb-btn" aria-label="Voir la page du cours en grand">
+            <img id="sourceImg" alt="Extrait du cours" loading="lazy">
+          </button>
+        </div>
         <button id="nextBtn" class="primary-btn">Suivant →</button>
       </div>
     </main>
@@ -144,6 +153,13 @@
 
 <!-- COEURS FLOTTANTS -->
 <div id="floatingHearts" class="floating-hearts"></div>
+
+<!-- MODAL IMAGE COURS -->
+<div id="imgModal" class="img-modal hidden" role="dialog" aria-modal="true" aria-label="Page du cours">
+  <button id="closeModalBtn" class="modal-close" aria-label="Fermer">✕</button>
+  <div class="modal-caption"><span id="modalCaption">—</span></div>
+  <img id="modalImg" alt="Page complete du cours">
+</div>
 
 <script src="questions.js"></script>
 <script src="script.js"></script>
