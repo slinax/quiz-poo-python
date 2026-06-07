@@ -61,7 +61,16 @@
             <div class="mode-desc">20 questions, corrigé à la fin</div>
           </div>
         </label>
+        <label class="mode-card" id="modeMistakes">
+          <input type="radio" name="mode" value="mistakes">
+          <div class="mode-content">
+            <div class="mode-icon">🔁</div>
+            <div class="mode-title">Mes erreurs <span id="mistakeCount" class="mistake-badge">0</span></div>
+            <div class="mode-desc">Rejouer les questions que tu as ratées</div>
+          </div>
+        </label>
       </div>
+      <button id="clearMistakesBtn" class="link-btn hidden">🗑 Effacer mes erreurs enregistrées</button>
     </div>
 
     <div id="categoryPicker" class="category-picker hidden">

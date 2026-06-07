@@ -4,6 +4,41 @@
 
   const QUESTIONS = window.QUIZ_QUESTIONS || [];
   const HEART_EMOJIS = ['❤️', '💜', '💖', '💕', '💗', '💝', '🩷', '💓', '🧡', '💛'];
+  const STORAGE_KEY = 'quiz_poo_mistakes_v1';
+
+  // -------------------- PERSISTANCE ERREURS --------------------
+  function loadMistakes() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return new Set();
+      return new Set(JSON.parse(raw));
+    } catch (e) { return new Set(); }
+  }
+  function saveMistakes(set) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(set))); }
+    catch (e) { /* ignore */ }
+  }
+  function addMistake(qIdx) {
+    const m = loadMistakes(); m.add(qIdx); saveMistakes(m); return m;
+  }
+  function removeMistake(qIdx) {
+    const m = loadMistakes(); m.delete(qIdx); saveMistakes(m); return m;
+  }
+  function clearMistakes() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  }
+  function refreshMistakeBadge() {
+    const m = loadMistakes();
+    const badge = $('#mistakeCount');
+    if (badge) {
+      badge.textContent = m.size;
+      badge.classList.toggle('is-zero', m.size === 0);
+    }
+    const card = $('#modeMistakes');
+    if (card) card.classList.toggle('disabled', m.size === 0);
+    const clearBtn = $('#clearMistakesBtn');
+    if (clearBtn) clearBtn.classList.toggle('hidden', m.size === 0);
+  }
 
   // -------------------- ETAT --------------------
   const state = {
@@ -43,31 +78,10 @@
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
   }
 
-  // Insertion de coeurs aléatoires dans le texte d'une question
+  // Cœur (couleur aléatoire) ajouté à la FIN de chaque question
   function addRandomHearts(text) {
-    // Probabilité d'ajouter des coeurs : 35%
-    if (Math.random() > 0.35) return escapeHtml(text);
-
-    const words = text.split(' ');
-    const nHearts = 1 + Math.floor(Math.random() * 2); // 1 ou 2 coeurs
-    const positions = new Set();
-    for (let i = 0; i < nHearts; i++) {
-      positions.add(Math.floor(Math.random() * (words.length + 1)));
-    }
-
-    const out = [];
-    words.forEach((w, i) => {
-      if (positions.has(i)) {
-        const h = HEART_EMOJIS[Math.floor(Math.random() * HEART_EMOJIS.length)];
-        out.push(`<span class="question-heart">${h}</span>`);
-      }
-      out.push(escapeHtml(w));
-    });
-    if (positions.has(words.length)) {
-      const h = HEART_EMOJIS[Math.floor(Math.random() * HEART_EMOJIS.length)];
-      out.push(`<span class="question-heart">${h}</span>`);
-    }
-    return out.join(' ');
+    const h = HEART_EMOJIS[Math.floor(Math.random() * HEART_EMOJIS.length)];
+    return escapeHtml(text) + ' <span class="question-heart">' + h + '</span>';
   }
 
   function escapeHtml(s) {
@@ -135,6 +149,13 @@
     });
 
     $('#startBtn').addEventListener('click', startQuiz);
+    $('#clearMistakesBtn').addEventListener('click', () => {
+      if (confirm('Effacer toutes les questions ratées enregistrées ?')) {
+        clearMistakes();
+        refreshMistakeBadge();
+      }
+    });
+    refreshMistakeBadge();
   }
 
   // -------------------- DEMARRAGE --------------------
@@ -147,6 +168,13 @@
         return;
       }
       pool = pool.filter((q) => q.category === state.category);
+    } else if (state.mode === 'mistakes') {
+      const m = loadMistakes();
+      if (m.size === 0) {
+        alert('Aucune erreur enregistrée pour le moment.\nFais d\'abord quelques questions !');
+        return;
+      }
+      pool = QUESTIONS.filter((_, i) => m.has(i));
     }
 
     pool = shuffle(pool);
@@ -207,9 +235,10 @@
     const q = state.deck[state.index];
     const correctIdx = q.answer;
     const isCorrect = givenIdx === correctIdx;
+    const qIdx = QUESTIONS.indexOf(q);
 
     state.answers.push({
-      qIdx: QUESTIONS.indexOf(q),
+      qIdx: qIdx,
       q: q,
       given: givenIdx,
       correct: isCorrect,
@@ -218,12 +247,16 @@
     if (isCorrect) {
       state.ok++;
       $('#scoreOk').textContent = state.ok;
+      // En mode 'refaire les erreurs' : succès = on retire de la liste
+      if (state.mode === 'mistakes') removeMistake(qIdx);
       // Anim cœurs
       const rect = btn.getBoundingClientRect();
       burstHearts(rect.left + rect.width / 2, rect.top + rect.height / 2, 7);
     } else {
       state.ko++;
       $('#scoreKo').textContent = state.ko;
+      // Mémorise l'erreur de façon persistante
+      addMistake(qIdx);
     }
 
     // Désactiver toutes les options
@@ -355,6 +388,7 @@
     }
 
     showScreen('#screen-result');
+    refreshMistakeBadge();
   }
 
   // -------------------- REVISION --------------------
