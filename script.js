@@ -68,6 +68,8 @@
     $$('.screen').forEach((s) => s.classList.remove('active'));
     $(id).classList.add('active');
     window.scrollTo(0, 0);
+    // Le badge "Mes erreurs" se met à jour à chaque retour à l'accueil
+    if (id === '#screen-home') refreshMistakeBadge();
   }
 
   function getCategories() {
@@ -247,15 +249,13 @@
     if (isCorrect) {
       state.ok++;
       $('#scoreOk').textContent = state.ok;
-      // En mode 'refaire les erreurs' : succès = on retire de la liste
-      if (state.mode === 'mistakes') removeMistake(qIdx);
       // Anim cœurs
       const rect = btn.getBoundingClientRect();
       burstHearts(rect.left + rect.width / 2, rect.top + rect.height / 2, 7);
     } else {
       state.ko++;
       $('#scoreKo').textContent = state.ko;
-      // Mémorise l'erreur de façon persistante
+      // Mémorise l'erreur de façon persistante (Set : idempotent)
       addMistake(qIdx);
     }
 
@@ -385,6 +385,22 @@
           );
         }, i * 80);
       }
+    }
+
+    // Mode "Mes erreurs" : proposer de retirer les réussies
+    const pruneBtn = $('#pruneOkBtn');
+    const correctIdxs = state.answers.filter((a) => a.correct).map((a) => a.qIdx);
+    if (state.mode === 'mistakes' && correctIdxs.length > 0) {
+      $('#pruneCount').textContent = correctIdxs.length;
+      pruneBtn.classList.remove('hidden');
+      pruneBtn.onclick = () => {
+        correctIdxs.forEach((i) => removeMistake(i));
+        pruneBtn.classList.add('hidden');
+        refreshMistakeBadge();
+        pruneBtn.textContent = `Retirées ✓`;
+      };
+    } else {
+      pruneBtn.classList.add('hidden');
     }
 
     showScreen('#screen-result');
